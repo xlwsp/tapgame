@@ -1,6 +1,4 @@
-// ==========================
-// Firebase config（指定通り）
-// ==========================
+// Firebase config（そのまま）
 const firebaseConfig = {
   apiKey: "AIzaSyDUaWtZJZefUqjBs9LcEbOD6YeL9K1HjcU",
   authDomain: "tapgame-6595f.firebaseapp.com",
@@ -13,72 +11,87 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ==========================
-// ゲーム設定
-// ==========================
-const MAX = 25;
+const grid = document.getElementById("grid");
+const startBtn = document.getElementById("startBtn");
+const resetBtn = document.getElementById("resetBtn");
+const rankingEl = document.getElementById("ranking");
+const nameInput = document.getElementById("nameInput");
 
 let current = 1;
 let startTime = null;
 let playing = false;
 
-// ==========================
-// DOM
-// ==========================
-const countEl = document.getElementById("count");
-const gameEl = document.getElementById("game");
-const startBtn = document.getElementById("startBtn");
-const resetBtn = document.getElementById("resetBtn");
-const rankingEl = document.getElementById("ranking");
+const MAX = 25;
 
-// ==========================
-// ゲーム処理
-// ==========================
-startBtn.onclick = () => {
+// ===== ゲーム生成 =====
+function createGrid() {
+  grid.innerHTML = "";
   current = 1;
-  countEl.textContent = current;
+  playing = false;
   startTime = null;
+
+  const numbers = Array.from({ length: MAX }, (_, i) => i + 1);
+  numbers.sort(() => Math.random() - 0.5);
+
+  numbers.forEach(num => {
+    const div = document.createElement("div");
+    div.className = "cell";
+    div.textContent = num;
+
+    div.onclick = () => {
+      if (!playing) return;
+      if (Number(div.textContent) !== current) return;
+
+      if (current === 1) startTime = Date.now();
+
+      div.classList.add("disabled");
+      div.textContent = "";
+      current++;
+
+      if (current > MAX) {
+        const time = (Date.now() - startTime) / 1000;
+        playing = false;
+        saveScore(time);
+        alert(`クリア！ ${time.toFixed(2)} 秒`);
+      }
+    };
+
+    grid.appendChild(div);
+  });
+}
+
+// ===== ボタン =====
+startBtn.onclick = () => {
+  if (!nameInput.value.trim()) {
+    alert("名前を入力して！");
+    return;
+  }
   playing = true;
 };
 
-resetBtn.onclick = () => {
-  current = 1;
-  countEl.textContent = current;
-  startTime = null;
-  playing = false;
-};
+resetBtn.onclick = createGrid;
 
-gameEl.onclick = () => {
-  if (!playing) return;
-
-  if (current === 1) {
-    startTime = Date.now();
-  }
-
-  current++;
-
-  if (current > MAX) {
-    const time = (Date.now() - startTime) / 1000;
-    saveScore(time);
-    playing = false;
-    alert(`記録: ${time.toFixed(2)} 秒`);
-  } else {
-    countEl.textContent = current;
-  }
-};
-
-// ==========================
-// Firestore
-// ==========================
+// ===== ランキング保存（速い時だけ）=====
 function saveScore(time) {
   const uid = getUID();
+  const newTime = Number(time.toFixed(2));
+  const name = nameInput.value.trim();
+  const ref = db.collection("scores").doc(uid);
 
-  db.collection("scores").doc(uid).set({
-    time: Number(time.toFixed(2)),
-    updatedAt: Date.now()
-  }).then(loadRanking);
+  ref.get().then(doc => {
+    if (!doc.exists || newTime < doc.data().time) {
+      ref.set({
+        name,
+        time: newTime,
+        updatedAt: Date.now()
+      }).then(loadRanking);
+    } else {
+      loadRanking();
+    }
+  });
 }
 
+// ===== ランキング表示 =====
 function loadRanking() {
   rankingEl.innerHTML = "";
 
@@ -88,24 +101,24 @@ function loadRanking() {
     .get()
     .then(snapshot => {
       snapshot.forEach(doc => {
+        const d = doc.data();
         const li = document.createElement("li");
-        li.textContent = doc.data().time + " 秒";
+        li.textContent = `${d.name} — ${d.time} 秒`;
         rankingEl.appendChild(li);
       });
     });
 }
 
-// ==========================
-// 1端末1回用ID
-// ==========================
+// ===== 端末ID =====
 function getUID() {
-  let uid = localStorage.getItem("tapgame_uid");
+  let uid = localStorage.getItem("tap_uid");
   if (!uid) {
     uid = crypto.randomUUID();
-    localStorage.setItem("tapgame_uid", uid);
+    localStorage.setItem("tap_uid", uid);
   }
   return uid;
 }
 
-// 初回ロード
+// 初期化
+createGrid();
 loadRanking();
