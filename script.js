@@ -6,7 +6,12 @@ import {
   getFirestore,
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  limit
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -29,11 +34,11 @@ const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
 const timeEl = document.getElementById("time");
 const bestEl = document.getElementById("best");
+const rankingEl = document.getElementById("ranking");
 
 // ===============================
 // ゲーム用変数
 // ===============================
-let numbers = [];
 let current = 1;
 let startTime = null;
 let timer = null;
@@ -59,7 +64,7 @@ function shuffle(array) {
 
 function createGrid() {
   grid.innerHTML = "";
-  numbers = shuffle([...Array(25)].map((_, i) => i + 1));
+  const numbers = shuffle([...Array(25)].map((_, i) => i + 1));
 
   numbers.forEach(num => {
     const cell = document.createElement("div");
@@ -129,6 +134,29 @@ async function finishGame() {
     });
     bestEl.textContent = time.toFixed(2) + " 秒";
   }
+
+  loadRanking();
+}
+
+// ===============================
+// ランキング表示（上位10人）
+// ===============================
+async function loadRanking() {
+  rankingEl.innerHTML = "";
+
+  const q = query(
+    collection(db, "scores"),
+    orderBy("time", "asc"),
+    limit(10)
+  );
+
+  const snapshot = await getDocs(q);
+
+  snapshot.forEach(doc => {
+    const li = document.createElement("li");
+    li.textContent = doc.data().time.toFixed(2) + " 秒";
+    rankingEl.appendChild(li);
+  });
 }
 
 // ===============================
@@ -138,7 +166,7 @@ startBtn.onclick = startGame;
 resetBtn.onclick = resetGame;
 
 // ===============================
-// 初期ベストタイム表示
+// 初期表示
 // ===============================
 (async () => {
   const ref = doc(db, "scores", deviceId);
@@ -146,4 +174,5 @@ resetBtn.onclick = resetGame;
   if (snap.exists()) {
     bestEl.textContent = snap.data().time.toFixed(2) + " 秒";
   }
+  loadRanking();
 })();
