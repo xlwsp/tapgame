@@ -3,25 +3,33 @@ body {
   text-align: center;
 }
 
+.controls {
+  margin-bottom: 10px;
+}
+
 #grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
-  max-width: 300px;
+  max-width: 320px;
   margin: 20px auto;
+  touch-action: manipulation;
 }
 
 .cell {
   background: #4caf50;
   color: white;
-  font-size: 20px;
-  padding: 15px 0;
-  border-radius: 8px;
-  cursor: pointer;
+  font-size: 22px;
+  height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
   user-select: none;
+  cursor: pointer;
 }
 
-.cell.disabled {
-  background: #ccc;
-  cursor: default;
+.cell.done {
+  background: #aaa;
+  pointer-events: none;
 }

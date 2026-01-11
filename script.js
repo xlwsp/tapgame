@@ -1,4 +1,6 @@
+// ==========================
 // Firebase config（そのまま）
+// ==========================
 const firebaseConfig = {
   apiKey: "AIzaSyDUaWtZJZefUqjBs9LcEbOD6YeL9K1HjcU",
   authDomain: "tapgame-6595f.firebaseapp.com",
@@ -11,71 +13,81 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// ==========================
 const grid = document.getElementById("grid");
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
 const rankingEl = document.getElementById("ranking");
 const nameInput = document.getElementById("nameInput");
 
+const MAX = 25;
 let current = 1;
 let startTime = null;
 let playing = false;
 
-const MAX = 25;
-
-// ===== ゲーム生成 =====
+// ==========================
+// グリッド生成
+// ==========================
 function createGrid() {
   grid.innerHTML = "";
   current = 1;
-  playing = false;
   startTime = null;
 
-  const numbers = Array.from({ length: MAX }, (_, i) => i + 1);
-  numbers.sort(() => Math.random() - 0.5);
+  const nums = Array.from({ length: MAX }, (_, i) => i + 1);
+  nums.sort(() => Math.random() - 0.5);
 
-  numbers.forEach(num => {
-    const div = document.createElement("div");
-    div.className = "cell";
-    div.textContent = num;
+  nums.forEach(num => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.textContent = num;
 
-    div.onclick = () => {
+    cell.addEventListener("click", () => {
       if (!playing) return;
-      if (Number(div.textContent) !== current) return;
+      if (Number(cell.textContent) !== current) return;
 
-      if (current === 1) startTime = Date.now();
+      if (current === 1) {
+        startTime = Date.now();
+      }
 
-      div.classList.add("disabled");
-      div.textContent = "";
+      cell.classList.add("done");
       current++;
 
       if (current > MAX) {
-        const time = (Date.now() - startTime) / 1000;
         playing = false;
+        const time = (Date.now() - startTime) / 1000;
         saveScore(time);
         alert(`クリア！ ${time.toFixed(2)} 秒`);
       }
-    };
+    });
 
-    grid.appendChild(div);
+    grid.appendChild(cell);
   });
 }
 
-// ===== ボタン =====
-startBtn.onclick = () => {
+// ==========================
+// ボタン
+// ==========================
+startBtn.addEventListener("click", () => {
   if (!nameInput.value.trim()) {
     alert("名前を入力して！");
     return;
   }
+  createGrid();
   playing = true;
-};
+});
 
-resetBtn.onclick = createGrid;
+resetBtn.addEventListener("click", () => {
+  createGrid();
+  playing = false;
+});
 
-// ===== ランキング保存（速い時だけ）=====
+// ==========================
+// Firestore（速い時だけ更新）
+// ==========================
 function saveScore(time) {
   const uid = getUID();
-  const newTime = Number(time.toFixed(2));
   const name = nameInput.value.trim();
+  const newTime = Number(time.toFixed(2));
   const ref = db.collection("scores").doc(uid);
 
   ref.get().then(doc => {
@@ -91,7 +103,7 @@ function saveScore(time) {
   });
 }
 
-// ===== ランキング表示 =====
+// ==========================
 function loadRanking() {
   rankingEl.innerHTML = "";
 
@@ -109,7 +121,7 @@ function loadRanking() {
     });
 }
 
-// ===== 端末ID =====
+// ==========================
 function getUID() {
   let uid = localStorage.getItem("tap_uid");
   if (!uid) {
@@ -119,6 +131,6 @@ function getUID() {
   return uid;
 }
 
-// 初期化
+// 初期表示
 createGrid();
 loadRanking();
