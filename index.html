@@ -1,212 +1,25 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>数字順タップ 5×5</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body {
-  text-align: center;
-  font-family: sans-serif;
-  padding: 10px;
-}
-
-#countdown {
-  font-size: 32px;
-  margin: 10px;
-}
-
-#time {
-  font-size: 20px;
-  margin: 10px;
-}
-
-#game {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  max-width: 300px;
-  margin: 20px auto;
-}
-
-.cell {
-  background: #8fff8f;
-  padding: 18px 0;
-  border-radius: 10px;
-  font-size: 18px;
-  user-select: none;
-}
-
-.cell.wrong {
-  background: #ff6b6b;
-}
-
-button {
-  padding: 10px 20px;
-  font-size: 16px;
-}
-
-#ranking {
-  margin-top: 20px;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Number Click Game</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<h2>1〜25を順番にタップ！</h2>
-<div id="countdown"></div>
-<div id="time">タイム: 0.00 秒</div>
+<h1>1〜25 クリックゲーム</h1>
 
-<div id="game"></div>
+<div id="info">
+  <p>タイム：<span id="time">0.00</span> 秒</p>
+  <p>ベスト：<span id="best">---</span></p>
+</div>
 
-<button onclick="resetGame()">もう一回</button>
+<button id="startBtn">スタート</button>
+<button id="resetBtn" disabled>やり直す</button>
 
-<h3>🏆 ランキング</h3>
-<div id="ranking">読み込み中...</div>
+<div id="grid"></div>
 
-<script type="module">
-/* ===== Firebase ===== */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDUaWtZJZefUqjBs9LcEbOD6YeL9K1HjcU",
-  authDomain: "tapgame-6595f.firebaseapp.com",
-  projectId: "tapgame-6595f",
-  storageBucket: "tapgame-6595f.firebasestorage.app",
-  messagingSenderId: "6228648102",
-  appId: "1:6228648102:web:32fc4035c1233dfd039467"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-/* ===== ゲーム処理 ===== */
-const gameDiv = document.getElementById("game");
-const timeDiv = document.getElementById("time");
-const countdownDiv = document.getElementById("countdown");
-const rankingDiv = document.getElementById("ranking");
-
-let numbers = [];
-let current = 1;
-let startTime = 0;
-let timer = null;
-let playing = false;
-
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}
-
-function startGame() {
-  numbers = Array.from({ length: 25 }, (_, i) => i + 1);
-  shuffle(numbers);
-  gameDiv.innerHTML = "";
-  current = 1;
-  playing = false;
-
-  numbers.forEach(n => {
-    const div = document.createElement("div");
-    div.className = "cell";
-    div.textContent = n;
-    div.onclick = () => tap(div, n);
-    gameDiv.appendChild(div);
-  });
-
-  let count = 3;
-  countdownDiv.textContent = count;
-  const cd = setInterval(() => {
-    count--;
-    countdownDiv.textContent = count > 0 ? count : "START!";
-    if (count < 0) {
-      clearInterval(cd);
-      countdownDiv.textContent = "";
-      startTime = performance.now();
-      playing = true;
-      timer = setInterval(updateTime, 10);
-    }
-  }, 1000);
-}
-
-function updateTime() {
-  const t = (performance.now() - startTime) / 1000;
-  timeDiv.textContent = `タイム: ${t.toFixed(2)} 秒`;
-}
-
-function tap(div, num) {
-  if (!playing) return;
-
-  if (num === current) {
-    div.style.visibility = "hidden";
-    current++;
-    if (current === 26) finishGame();
-  } else {
-    div.classList.add("wrong");
-    setTimeout(() => div.classList.remove("wrong"), 300);
-  }
-}
-
-async function finishGame() {
-  clearInterval(timer);
-  playing = false;
-
-  const time = ((performance.now() - startTime) / 1000).toFixed(2);
-  const name = prompt("名前を入力", "せいや") || "no-name";
-
-  await addDoc(collection(db, "scores"), {
-    name,
-    time: Number(time),
-    created: Date.now()
-  });
-
-  loadRanking();
-}
-
-function resetGame() {
-  clearInterval(timer);
-  timeDiv.textContent = "タイム: 0.00 秒";
-  startGame();
-}
-
-/* ===== ランキング ===== */
-async function loadRanking() {
-  rankingDiv.innerHTML = "";
-  const q = query(
-    collection(db, "scores"),
-    orderBy("time"),
-    limit(10)
-  );
-
-  const snap = await getDocs(q);
-  if (snap.empty) {
-    rankingDiv.textContent = "データなし";
-    return;
-  }
-
-  let rank = 1;
-  snap.forEach(doc => {
-    const d = doc.data();
-    rankingDiv.innerHTML += `${rank}位：${d.name}（${d.time}秒）<br>`;
-    rank++;
-  });
-}
-
-/* 初期化 */
-startGame();
-loadRanking();
-</script>
-
+<script type="module" src="script.js"></script>
 </body>
 </html>
