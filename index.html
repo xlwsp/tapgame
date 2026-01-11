@@ -1,28 +1,33 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Number Click Game</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tap Game</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-<h1>1〜25 クリックゲーム</h1>
+  <h1>Tap Game</h1>
 
-<div id="info">
-  <p>タイム：<span id="time">0.00</span> 秒</p>
-  <p>ベスト：<span id="best">---</span></p>
-</div>
+  <button id="startBtn">スタート</button>
+  <button id="resetBtn">やり直す</button>
 
-<button id="startBtn">スタート</button>
-<button id="resetBtn" disabled>やり直す</button>
+  <div class="grid">
+    <div id="game">
+      <p id="count">1</p>
+    </div>
 
-<div id="grid"></div>
+    <div class="rankingBox">
+      <h2>ランキング</h2>
+      <ol id="ranking"></ol>
+    </div>
+  </div>
 
-<h2>ランキング（上位10人）</h2>
-<ol id="ranking"></ol>
-
-<script type="module" src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
